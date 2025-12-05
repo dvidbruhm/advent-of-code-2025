@@ -77,6 +77,8 @@ def main(day: int, part: int, test: bool):
         assert answer == test_answer, (
             f"\nFAIL\nTest answer: {test_answer}\nMy answer: {answer}"
         )
+        if answer == test_answer:
+            print(f"Test passed! {test_answer} = {answer}")
     print(f"My answer: {answer}")
     print(f"Took: {end - start:.6f} seconds")
     return
