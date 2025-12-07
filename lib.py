@@ -1,4 +1,4 @@
-def read_input(day: int, part: int, use_part: bool = False):
+def read_input(day: int | str, part: int, use_part: bool = False):
     file_name = f"input{day}.txt"
     if use_part:
         file_name = f"input{day}_{part}.txt"
