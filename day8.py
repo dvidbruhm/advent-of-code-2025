@@ -2,6 +2,7 @@ import time
 from collections import namedtuple
 
 import numpy as np
+from line_profiler import profile
 from scipy.spatial import KDTree
 
 import lib
@@ -17,69 +18,65 @@ def parse_inputs(input: str):
     return parsed_input
 
 
-def two_closest_points(tree, points):
-    circuits = []
-    distances, indices = tree.query(points, k=len(points))
-    indices = indices[distances > 0]  # .reshape((len(points), -1))
-    distances = distances[distances > 0]  # .reshape((len(points), -1))
-    current_mins = np.argpartition(distances, 0)
-    current_mins = np.argsort(distances)
-    # for i in range(1000):
-    while max(circuits) > 0:
-        current_min = current_mins[i * 2 + 1]
-        p1_i = current_min // (len(points) - 1)
-        p2_i = indices[current_min]
-        p1, p2 = int(p1_i), int(p2_i)  # points[p1_i], points[p2_i]
-
-        added = False
-        add_i, add_j = None, None
-        # print(p1, p2)
+@profile
+def update_circuits(circuits, p1, p2):
+    # Slow set intersection/union method, but simple and works
+    circuits.append(set([p1, p2]))
+    for _ in range(2):
+        to_remove = []
         for i in range(len(circuits)):
-            both = 0
-            c = circuits[i]
-            if p1 in c:
-                both += 1
-                if p2 not in c:
-                    c.append(p2)
-                    added = True
-                    add_i = i
-            if p2 in c:
-                both += 1
-                if p1 not in c:
-                    c.append(p1)
-                    added = True
-                    add_j = i
-            if both == 2:
-                added = True
-
-        if add_i and add_j:
-            for i in circuits[add_i]:
-                for j in circuits[add_j]:
-                    if j not in circuits[add_i]:
-                        circuits[add_i].append(j)
-            del circuits[add_j]
-
-        if not added:
-            circuits.append([p1, p2])
-        # print(circuits)
-        # print()
-    circuits = sorted(circuits, key=lambda c: len(c), reverse=True)
-    # print(circuits)
-    # print(len(circuits[0]) * len(circuits[1]) * len(circuits[2]))
-    # print(len(circuits))
-    return len(circuits[0]) * len(circuits[1]) * len(circuits[2])
+            for j in range(i + 1, len(circuits)):
+                if len(circuits[i].intersection(circuits[j])) > 0:
+                    circuits[i] = circuits[i].union(circuits[j].difference(circuits[i]))
+                    to_remove.append(circuits[j])
+        for r in to_remove:
+            if r in circuits:
+                circuits.remove(r)
+    return
 
 
-def run(points, part: int):
+def end_cond(circuits, size, i, part, test):
+    if part == 1:
+        end_i = 1000 if not test else 10
+        return i >= end_i
+
+    if len(circuits) == 0:
+        return False
+    return len(max(circuits, key=lambda c: len(c))) >= size
+
+
+def run(points, part: int, test: bool):
     answer = 0
-    circuits = {i: [i] for i in range(len(points))}
+    circuits = []
+    size = len(points)
+
     tree = KDTree(points)
-    answer = two_closest_points(tree, points)
+    distances, indices = tree.query(points, k=len(points))
+    indices = indices[distances > 0]
+    distances = distances[distances > 0]
+    current_mins = np.argsort(distances)
+
+    i = 0
+    p1_i, p2_i = 0, 0
+    while not end_cond(circuits, size, i, part, test):
+        current_min = current_mins[i * 2 + 1]
+        p1_i, p2_i = current_min // (len(points) - 1), indices[current_min]
+        p1, p2 = int(p1_i), int(p2_i)
+
+        update_circuits(circuits, p1, p2)
+        i += 1
+
+    circuits = sorted(circuits, key=lambda c: len(c), reverse=True)
+
+    if part == 1:
+        answer = len(circuits[0]) * len(circuits[1]) * len(circuits[2])
+    else:
+        answer = points[p1_i].x * points[p2_i].x
     return answer
 
 
 def main(day: int, part: int, test: bool):
-    test_answer = 40 if part == 1 else 0
+    test_answer = 40 if part == 1 else 25272
     test_input = """162,817,812
 57,618,57
 906,360,560
@@ -104,7 +101,7 @@ def main(day: int, part: int, test: bool):
     input = test_input if test else lib.read_input(day, part, False)
     parsed_input = parse_inputs(input)
     start = time.perf_counter()
-    answer = run(parsed_input, part)
+    answer = run(parsed_input, part, test)
     end = time.perf_counter()
     if test:
         assert answer == test_answer, (
