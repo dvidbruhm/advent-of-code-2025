@@ -8,13 +8,13 @@ def parse_inputs(input: str):
     return parsed_input
 
 
-def run(parsed_input, part: int):
+def run(parsed_input, part: int, debug: bool):
     answer = 0
 
     return answer
 
 
-def main(day: int, part: int, test: bool):
+def main(day: int, part: int, test: bool, debug: bool):
     test_answer = 0 if part == 1 else 0
     test_input = """
     """
@@ -22,7 +22,7 @@ def main(day: int, part: int, test: bool):
     input = test_input if test else lib.read_input(day, part, False)
     parsed_input = parse_inputs(input)
     start = time.perf_counter()
-    answer = run(parsed_input, part)
+    answer = run(parsed_input, part, debug)
     end = time.perf_counter()
     if test:
         assert answer == test_answer, (

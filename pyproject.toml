@@ -5,5 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "networkx>=3.6.1",
     "scipy>=1.16.3",
+    "sympy>=1.14.0",
 ]
